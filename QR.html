@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Studio Pro</title>
+
+<!-- LOCAL JS - không bị block -->
+<script src="js/qrcode.min.js"></script>
+<script src="js/jsqr.min.js"></script>
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --primary: #6366f1; --secondary: #8b5cf6; --accent: #06b6d4;
+  --success: #10b981; --bg: #0f0f1a; --card: #1a1a2e; --card2: #16213e;
+  --text: #e2e8f0; --text2: #94a3b8; --border: #2d3748;
+}
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+.header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  padding: 16px 24px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 16px;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo {
+  width: 44px; height: 44px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  font-size: 22px; box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+}
+.header h1 { font-size: 22px; font-weight: 700; background: linear-gradient(90deg,#e2e8f0,#818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.header p { font-size: 12px; color: var(--text2); }
+
+.tabs { display: flex; gap: 4px; padding: 16px 24px 0; border-bottom: 1px solid var(--border); }
+.tab { padding: 10px 20px; border-radius: 10px 10px 0 0; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; color: var(--text2); background: transparent; }
+.tab.active { background: linear-gradient(135deg,var(--primary),var(--secondary)); color: white; }
+.tab:hover:not(.active) { background: var(--card); color: var(--text); }
+
+.main { display: grid; grid-template-columns: 380px 1fr; gap: 0; min-height: calc(100vh - 115px); }
+.panel { background: var(--card); border-right: 1px solid var(--border); padding: 20px; overflow-y: auto; max-height: calc(100vh - 115px); }
+.panel::-webkit-scrollbar { width: 4px; }
+.panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.form-group { margin-bottom: 16px; }
+label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+input[type="text"], input[type="url"], textarea, select {
+  width: 100%; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; color: var(--text); font-size: 14px;
+  transition: all 0.3s; outline: none;
+}
+input[type="text"]:focus, input[type="url"]:focus, textarea:focus, select:focus {
+  border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+}
+textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+select option { background: var(--card); }
+
+.color-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.color-item { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; }
+input[type="color"] { width: 32px; height: 32px; border: none; border-radius: 6px; cursor: pointer; background: none; padding: 0; }
+.color-item span { font-size: 12px; color: var(--text2); }
+
+.range-group { display: flex; align-items: center; gap: 10px; }
+input[type="range"] { flex: 1; -webkit-appearance: none; height: 4px; border-radius: 4px; background: var(--border); outline: none; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--primary); cursor: pointer; }
+.range-val { font-size: 13px; font-weight: 600; color: var(--primary); min-width: 36px; text-align: right; }
+
+.section-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+
+.template-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 16px; }
+.template-card { border: 2px solid var(--border); border-radius: 10px; padding: 10px 6px; cursor: pointer; transition: all 0.3s; text-align: center; background: var(--bg); }
+.template-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+.template-card.active { border-color: var(--primary); background: rgba(99,102,241,0.1); }
+.template-preview { width: 36px; height: 36px; border-radius: 8px; margin: 0 auto 4px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.template-name { font-size: 10px; font-weight: 600; color: var(--text2); }
+
+.upload-area { border: 2px dashed var(--border); border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.3s; background: var(--bg); position: relative; }
+.upload-area:hover { border-color: var(--primary); background: rgba(99,102,241,0.05); }
+.upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.upload-icon { font-size: 24px; margin-bottom: 6px; }
+.upload-text { font-size: 12px; color: var(--text2); }
+.logo-preview-wrap { display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-top: 10px; }
+.logo-preview-wrap img { width: 44px; height: 44px; object-fit: contain; border-radius: 8px; background: white; padding: 3px; }
+.logo-info { flex: 1; }
+.logo-name { font-size: 12px; font-weight: 600; }
+.logo-size { font-size: 11px; color: var(--text2); }
+.btn-remove { background: #ef4444; border: none; color: white; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+
+.btn { padding: 11px 18px; border-radius: 10px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; display: flex; align-items: center; gap: 8px; justify-content: center; }
+.btn-primary { background: linear-gradient(135deg,var(--primary),var(--secondary)); color: white; width: 100%; box-shadow: 0 4px 15px rgba(99,102,241,0.3); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(99,102,241,0.4); }
+.btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+.btn-success { background: linear-gradient(135deg,var(--success),#059669); color: white; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+.btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+
+.result-area { padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: calc(100vh - 115px); background: var(--card2); overflow-y: auto; }
+.qr-result-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; max-width: 520px; }
+.qr-card { position: relative; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+.qr-img-display { width: 100%; max-width: 400px; height: auto; display: block; border-radius: 20px; }
+
+.empty-state { text-align: center; padding: 60px 20px; }
+.empty-icon { font-size: 80px; margin-bottom: 20px; opacity: 0.3; }
+.empty-title { font-size: 20px; font-weight: 700; color: var(--text2); margin-bottom: 8px; }
+.empty-desc { font-size: 14px; color: var(--text2); opacity: 0.7; }
+
+.download-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.download-group .btn { min-width: 110px; }
+
+.panel-section { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.panel-section:last-child { border-bottom: none; margin-bottom: 0; }
+
+.ec-group { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
+.ec-btn { padding: 7px 4px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text2); font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.3s; }
+.ec-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.info-item { background: var(--bg); border-radius: 8px; padding: 10px; border: 1px solid var(--border); }
+.info-label { font-size: 10px; color: var(--text2); text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+.info-value { font-size: 13px; font-weight: 700; color: var(--text); }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; font-size: 14px; display: flex; align-items: center; gap: 10px; z-index: 9999; transform: translateY(100px); opacity: 0; transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1); max-width: 320px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { border-left: 4px solid var(--success); }
+.toast.error { border-left: 4px solid #ef4444; }
+.toast.info { border-left: 4px solid var(--accent); }
+
+/* Loading */
+.loading { display: none; align-items: center; gap: 10px; color: var(--text2); font-size: 14px; padding: 12px 0; }
+.loading.show { display: flex; }
+.spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Decode Tab */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.decode-area { padding: 20px; }
+.decode-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 960px; margin: 0 auto; }
+.decode-drop { border: 3px dashed var(--border); border-radius: 16px; padding: 40px 30px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative; background: var(--bg); }
+.decode-drop:hover, .decode-drop.dragover { border-color: var(--accent); background: rgba(6,182,212,0.05); }
+.decode-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.decode-icon { font-size: 48px; margin-bottom: 12px; }
+.decode-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.decode-sub { font-size: 13px; color: var(--text2); }
+
+/* Batch decode */
+.batch-container { margin-top: 16px; }
+.batch-title { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.batch-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
+.batch-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; position: relative; }
+.batch-item.success { border-left: 3px solid var(--success); }
+.batch-item.error { border-left: 3px solid #ef4444; }
+.batch-item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.batch-item-name { font-size: 12px; font-weight: 600; color: var(--text2); }
+.batch-item-type { font-size: 11px; background: rgba(6,182,212,0.1); color: var(--accent); padding: 2px 8px; border-radius: 10px; }
+.batch-item-content { font-size: 13px; word-break: break-all; line-height: 1.5; max-height: 60px; overflow: hidden; text-overflow: ellipsis; }
+.batch-item-img { width: 48px; height: 48px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border); margin-right: 10px; float: left; }
+.batch-item-error { font-size: 12px; color: #ef4444; }
+.batch-stats { display: flex; gap: 12px; margin-bottom: 12px; }
+.stat-box { flex: 1; background: var(--bg); border-radius: 8px; padding: 10px; text-align: center; border: 1px solid var(--border); }
+.stat-num { font-size: 22px; font-weight: 700; }
+.stat-label { font-size: 11px; color: var(--text2); }
+.stat-box.ok .stat-num { color: var(--success); }
+.stat-box.fail .stat-num { color: #ef4444; }
+
+.decode-result { margin-top: 16px; background: var(--card); border-radius: 14px; padding: 20px; border: 1px solid var(--border); }
+.decode-result h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; color: var(--success); }
+.decode-content { background: var(--bg); border-radius: 10px; padding: 14px; font-size: 14px; line-height: 1.6; word-break: break-all; border: 1px solid var(--border); max-height: 180px; overflow-y: auto; }
+.decode-type { display: inline-flex; align-items: center; gap: 6px; background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.3); color: var(--accent); padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 10px; }
+.decode-image-preview { max-width: 160px; max-height: 160px; border-radius: 10px; margin-bottom: 12px; border: 2px solid var(--border); display: block; }
+
+.btn-copy { background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.3); color: var(--accent); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.3s; margin-top: 10px; }
+.btn-copy:hover { background: rgba(6,182,212,0.2); }
+
+/* Multi-size QR */
+.size-selector { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.size-chip { padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text2); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.size-chip.active { background: var(--primary); border-color: var(--primary); color: white; }
+.multi-qr-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap: 12px; margin-top: 12px; }
+.multi-qr-item { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.multi-qr-item:hover { border-color: var(--primary); }
+.multi-qr-item.selected { border-color: var(--primary); background: rgba(99,102,241,0.08); }
+.multi-qr-item img { width: 100%; border-radius: 8px; display: block; }
+.multi-qr-size { font-size: 11px; font-weight: 700; color: var(--text2); margin-top: 6px; }
+
+@media (max-width: 768px) {
+  .main { grid-template-columns: 1fr; }
+  .panel { max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+  .decode-layout { grid-template-columns: 1fr; }
+  .result-area { min-height: auto; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">✦</div>
+  <div>
+    <h1>QR Studio Pro</h1>
+    <p>Tạo & Giải mã QR đẹp, chuyên nghiệp · Local Mode</p>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('generate',this)">🎨 Tạo QR</button>
+  <button class="tab" onclick="switchTab('decode',this)">🔍 Giải mã QR</button>
+</div>
+
+<!-- ========== GENERATE TAB ========== -->
+<div id="tab-generate" class="tab-content active">
+  <div class="main">
+    <!-- Panel trái -->
+    <div class="panel">
+
+      <!-- Nội dung -->
+      <div class="panel-section">
+        <div class="section-title">📝 Nội dung QR</div>
+        <div class="form-group">
+          <label>Loại nội dung</label>
+          <select id="contentType" onchange="updatePlaceholder()">
+            <option value="text">📄 Văn bản tự do</option>
+            <option value="url">🔗 URL / Website</option>
+            <option value="email">📧 Email</option>
+            <option value="phone">📞 Số điện thoại</option>
+            <option value="sms">💬 SMS</option>
+            <option value="wifi">📶 WiFi</option>
+            <option value="vcard">👤 vCard / Danh thiếp</option>
+            <option value="location">📍 Địa chỉ / Location</option>
+          </select>
+        </div>
+        <div id="contentFields">
+          <div class="form-group">
+            <label>Nội dung</label>
+            <textarea id="qrContent" placeholder="Nhập nội dung QR..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Template -->
+      <div class="panel-section">
+        <div class="section-title">🎨 Template Style</div>
+        <div class="template-grid" id="templateGrid">
+          <div class="template-card active" onclick="selectTemplate(this,'classic')">
+            <div class="template-preview" style="background:linear-gradient(135deg,#1a1a2e,#16213e)">🖤</div>
+            <div class="template-name">Classic</div>
+          </div>
+          <div class="template-card" onclick="selectTemplate(this,'ocean')">
+            <div class="template-preview" style="background:linear-gradient(135deg,#0ea5e9,#6366f1)">🌊</div>
+            <div class="template-name">Ocean</div>
+          </div>
+          <div class="template-card" onclick="selectTemplate(this,'sunset')">
+            <div class="template-preview" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">🌅</div>
+            <div class="template-name">Sunset</div>
+          </div>
+          <div class="template-card" onclick="selectTemplate(this,'forest')">
+            <div class="template-preview" style="background:linear-gradient(135deg,#10b981,#065f46)">🌿</div>
+            <div class="template-name">Forest</div>
+          </div>
+          <div class="template-card" onclick="selectTemplate(this,'candy')">
+            <div class="template-preview" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)">🍬</div>
+            <div class="template-name">Candy</div>
+          </div>
+          <div class="template-card" onclick="selectTemplate(this,'gold')">
+            <div class="template-preview" style="background:linear-gradient(135deg,#d97706,#78350f)">👑</div>
+            <div class="template-name">Gold</div>
+          </div>
+          <div class="template-card" onclick="selectTemplate(this,'neon')">
+            <div class="template-preview" style="background:linear-gradient(135deg,#000,#0ff8)">⚡</div>
+            <div class="template-name">Neon</div>
+          </div>
+          <div class="template-card" onclick="selectTemplate(this,'rose')">
+            <div class="template-preview" style="background:linear-gradient(135deg,#fda4af,#be123c)">🌹</div>
+            <div class="template-name">Rose</div>
+          </div>
+          <div class="template-card" onclick="selectTemplate(this,'custom')">
+            <div class="template-preview" style="background:linear-gradient(135deg,#475569,#1e293b)">🎛️</div>
+            <div class="template-name">Custom</div>
+          </div>
+        </div>
+        <div id="customColors" style="display:none">
+          <div class="color-group">
+            <div class="color-item"><input type="color" id="fgColor" value="#000000"><span>Màu QR</span></div>
+            <div class="color-item"><input type="color" id="bgColor" value="#ffffff"><span>Màu nền</span></div>
+            <div class="color-item"><input type="color" id="borderColor" value="#6366f1"><span>Viền 1</span></div>
+            <div class="color-item"><input type="color" id="borderColor2" value="#8b5cf6"><span>Viền 2</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Đa size -->
+      <div class="panel-section">
+        <div class="section-title">📐 Kích thước xuất</div>
+        <label>Chọn size (có thể chọn nhiều để xuất hàng loạt)</label>
+        <div class="size-selector">
+          <span class="size-chip active" onclick="toggleSize(this,200)">200px</span>
+          <span class="size-chip active" onclick="toggleSize(this,300)">300px</span>
+          <span class="size-chip active" onclick="toggleSize(this,400)">400px</span>
+          <span class="size-chip" onclick="toggleSize(this,600)">600px</span>
+          <span class="size-chip" onclick="toggleSize(this,800)">800px</span>
+          <span class="size-chip" onclick="toggleSize(this,1000)">1000px</span>
+        </div>
+        <div class="form-group" style="margin-top:12px">
+          <label>Padding: <span id="paddingVal">20</span>px</label>
+          <div class="range-group">
+            <input type="range" id="qrPadding" min="0" max="60" value="20" oninput="document.getElementById('paddingVal').textContent=this.value">
+          </div>
+        </div>
+      </div>
+
+      <!-- Logo -->
+      <div class="panel-section">
+        <div class="section-title">🖼️ Logo giữa QR</div>
+        <div class="upload-area">
+          <input type="file" id="logoFile" accept="image/*" onchange="handleLogoUpload(this)">
+          <div class="upload-icon">📤</div>
+          <div class="upload-text">Click hoặc kéo thả logo<br><small>PNG, JPG, SVG ≤ 5MB</small></div>
+        </div>
+        <div id="logoPreview" style="display:none" class="logo-preview-wrap">
+          <img id="logoImg" src="" alt="logo">
+          <div class="logo-info">
+            <div class="logo-name" id="logoName">logo.png</div>
+            <div class="logo-size" id="logoSizeText">0 KB</div>
+          </div>
+          <button class="btn-remove" onclick="removeLogo()">✕</button>
+        </div>
+        <div class="form-group" style="margin-top:10px">
+          <label>Kích thước logo: <span id="logoSizeVal">25</span>%</label>
+          <div class="range-group">
+            <input type="range" id="logoSize" min="10" max="40" value="25" oninput="document.getElementById('logoSizeVal').textContent=this.value">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Bo góc: <span id="logoRadiusVal">10</span>px</label>
+          <div class="range-group">
+            <input type="range" id="logoRadius" min="0" max="50" value="10" oninput="document.getElementById('logoRadiusVal').textContent=this.value">
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="panel-section">
+        <div class="section-title">⚙️ Cài đặt</div>
+        <div class="form-group">
+          <label>Sửa lỗi (Error Correction)</label>
+          <div class="ec-group">
+            <button class="ec-btn" onclick="setEC(this,'L')">L<br><small>7%</small></button>
+            <button class="ec-btn" onclick="setEC(this,'M')">M<br><small>15%</small></button>
+            <button class="ec-btn active" onclick="setEC(this,'Q')">Q<br><small>25%</small></button>
+            <button class="ec-btn" onclick="setEC(this,'H')">H<br><small>30%</small></button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Label dưới QR (tùy chọn)</label>
+          <input type="text" id="qrLabel" placeholder="Ví dụ: Quét để xem thêm">
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="generateQR()" style="margin-bottom:6px">✨ Tạo QR Code</button>
+    </div>
+
+    <!-- Result Area -->
+    <div class="result-area" id="resultArea">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">◉</div>
+        <div class="empty-title">Chưa có QR nào</div>
+        <div class="empty-desc">Điền nội dung và nhấn "Tạo QR Code"</div>
+      </div>
+
+      <div class="qr-result-wrap" id="qrResultWrap" style="display:none">
+        <div class="loading" id="loadingQR">
+          <div class="spinner"></div> Đang tạo QR...
+        </div>
+        <div id="qrOutput" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:16px">
+          <!-- Multi-size grid -->
+          <div id="multiQRGrid" class="multi-qr-grid" style="width:100%;max-width:520px"></div>
+
+          <!-- Selected QR display -->
+          <div class="qr-card" id="qrCard" style="display:none">
+            <img id="qrBlobImg" class="qr-img-display" src="" alt="QR Code" style="max-width:420px">
+          </div>
+
+          <div class="download-group" id="downloadGroup" style="display:none">
+            <button class="btn btn-success" onclick="downloadSelected('png')">⬇️ Tải PNG</button>
+            <button class="btn btn-outline" onclick="downloadSelected('svg')">📐 Tải SVG</button>
+            <button class="btn btn-outline" onclick="downloadAllPNG()">📦 Tải tất cả</button>
+            <button class="btn btn-outline" onclick="copyQRToClipboard()">📋 Copy</button>
+          </div>
+
+          <div class="info-grid" style="width:100%;max-width:520px" id="infoGrid">
+            <div class="info-item"><div class="info-label">Kích thước</div><div class="info-value" id="infoSize">-</div></div>
+            <div class="info-item"><div class="info-label">Ký tự</div><div class="info-value" id="infoChars">-</div></div>
+            <div class="info-item"><div class="info-label">Template</div><div class="info-value" id="infoTemplate">-</div></div>
+            <div class="info-item"><div class="info-label">File size</div><div class="info-value" id="infoFileSize">-</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== DECODE TAB ========== -->
+<div id="tab-decode" class="tab-content">
+  <div class="decode-area">
+    <div class="decode-layout">
+      <!-- Left: Upload -->
+      <div>
+        <div class="decode-drop" id="decodeDrop"
+          ondrop="handleDecode(event)"
+          ondragover="event.preventDefault();this.classList.add('dragover')"
+          ondragleave="this.classList.remove('dragover')">
+          <input type="file" id="decodeFile" accept="image/*" multiple onchange="decodeFromFiles(this)">
+          <div class="decode-icon">🔍</div>
+          <div class="decode-title">Tải ảnh QR lên</div>
+          <div class="decode-sub">Kéo thả hoặc click · Chọn nhiều ảnh cùng lúc<br>PNG, JPG, WebP, GIF</div>
+        </div>
+
+        <div style="margin-top:14px;text-align:center;color:var(--text2);font-size:13px">— hoặc —</div>
+
+        <div class="form-group" style="margin-top:14px">
+          <label>Dán URL ảnh QR</label>
+          <div style="display:flex;gap:8px">
+            <input type="url" id="decodeUrl" placeholder="https://...">
+            <button class="btn btn-outline" onclick="decodeFromUrl()" style="white-space:nowrap;padding:10px 14px">🔍 Giải mã</button>
+          </div>
+        </div>
+
+        <div class="loading" id="loadingDecode" style="margin-top:12px">
+          <div class="spinner"></div> Đang giải mã...
+        </div>
+
+        <!-- Batch stats -->
+        <div id="batchStats" style="display:none;margin-top:16px">
+          <div class="batch-stats">
+            <div class="stat-box ok"><div class="stat-num" id="statOk">0</div><div class="stat-label">✅ Thành công</div></div>
+            <div class="stat-box fail"><div class="stat-num" id="statFail">0</div><div class="stat-label">❌ Lỗi</div></div>
+            <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label">📁 Tổng</div></div>
+          </div>
+          <button class="btn btn-outline" onclick="exportBatchCSV()" style="width:100%;margin-bottom:10px">📊 Xuất CSV</button>
+        </div>
+      </div>
+
+      <!-- Right: Results -->
+      <div>
+        <!-- Single result -->
+        <div id="decodeResultArea" style="display:none">
+          <div class="decode-result">
+            <h3>✅ Giải mã thành công!</h3>
+            <img id="decodePreviewImg" class="decode-image-preview" src="" alt="">
+            <div class="decode-type" id="decodeType">📄 Text</div>
+            <div class="decode-content" id="decodeContent"></div>
+            <button class="btn-copy" onclick="copyDecodeResult()">📋 Copy nội dung</button>
+          </div>
+          <div class="decode-result" style="margin-top:14px">
+            <h3 style="color:var(--accent)">ℹ️ Thông tin</h3>
+            <div class="info-grid">
+              <div class="info-item"><div class="info-label">Loại</div><div class="info-value" id="decodeInfoType">-</div></div>
+              <div class="info-item"><div class="info-label">Độ dài</div><div class="info-value" id="decodeInfoLen">-</div></div>
+              <div class="info-item"><div class="info-label">Kích thước ảnh</div><div class="info-value" id="decodeInfoSize">-</div></div>
+              <div class="info-item"><div class="info-label">Trạng thái</div><div class="info-value" style="color:var(--success)">✓ OK</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Batch results -->
+        <div id="batchResultArea" style="display:none" class="batch-container">
+          <div class="batch-title">📋 Kết quả hàng loạt (<span id="batchCount">0</span> ảnh)</div>
+          <div class="batch-list" id="batchList"></div>
+        </div>
+
+        <div id="decodeErrorArea" style="display:none">
+          <div class="decode-result" style="border-left:4px solid #ef4444">
+            <h3 style="color:#ef4444">❌ Không thể giải mã</h3>
+            <p id="decodeErrorMsg" style="font-size:14px;color:var(--text2)"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✅</span>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+// ==============================
+// STATE
+// ==============================
+let currentTemplate = 'classic';
+let currentEC = 'Q';
+let logoDataUrl = null;
+let generatedBlobs = {}; // { size: blob }
+let selectedSize = null;
+let currentContent = '';
+let batchResults = [];
+let selectedSizes = [200, 300, 400]; // default active sizes
+
+const TEMPLATES = {
+  classic: { name:'Classic', fg:'#000000', bg:'#ffffff', border:['#1a1a2e','#374151'], label:'#ffffff' },
+  ocean:   { name:'Ocean',   fg:'#0c4a6e', bg:'#e0f2fe', border:['#0ea5e9','#6366f1'], label:'#ffffff' },
+  sunset:  { name:'Sunset',  fg:'#7c2d12', bg:'#fef3c7', border:['#f59e0b','#ef4444'], label:'#ffffff' },
+  forest:  { name:'Forest',  fg:'#064e3b', bg:'#ecfdf5', border:['#10b981','#065f46'], label:'#ffffff' },
+  candy:   { name:'Candy',   fg:'#701a75', bg:'#fdf4ff', border:['#ec4899','#8b5cf6'], label:'#ffffff' },
+  gold:    { name:'Gold',    fg:'#78350f', bg:'#fffbeb', border:['#d97706','#92400e'], label:'#fffbeb' },
+  neon:    { name:'Neon',    fg:'#00ffcc', bg:'#000000', border:['#00ffcc','#00aaff'], label:'#00ffcc' },
+  rose:    { name:'Rose',    fg:'#881337', bg:'#fff1f2', border:['#fda4af','#be123c'], label:'#ffffff' },
+  custom:  { name:'Custom',  fg:'#000000', bg:'#ffffff', border:['#6366f1','#8b5cf6'], label:'#ffffff' }
+};
+
+// ==============================
+// TABS
+// ==============================
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ==============================
+// SIZE TOGGLE
+// ==============================
+function toggleSize(el, size) {
+  el.classList.toggle('active');
+  if (el.classList.contains('active')) {
+    if (!selectedSizes.includes(size)) selectedSizes.push(size);
+  } else {
+    selectedSizes = selectedSizes.filter(s => s !== size);
+  }
+}
+
+// ==============================
+// TEMPLATE
+// ==============================
+function selectTemplate(el, name) {
+  document.querySelectorAll('.template-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentTemplate = name;
+  document.getElementById('customColors').style.display = name === 'custom' ? 'block' : 'none';
+}
+
+function setEC(btn, val) {
+  document.querySelectorAll('.ec-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentEC = val;
+}
+
+function getCustomTemplate() {
+  return {
+    name: 'Custom',
+    fg: document.getElementById('fgColor').value,
+    bg: document.getElementById('bgColor').value,
+    border: [document.getElementById('borderColor').value, document.getElementById('borderColor2').value],
+    label: document.getElementById('borderColor').value
+  };
+}
+
+// ==============================
+// CONTENT TYPE
+// ==============================
+function updatePlaceholder() {
+  const type = document.getElementById('contentType').value;
+  const container = document.getElementById('contentFields');
+  const tpls = {
+    text: `<div class="form-group"><label>Văn bản</label><textarea id="qrContent" placeholder="Nhập nội dung..."></textarea></div>`,
+    url:  `<div class="form-group"><label>URL</label><input type="url" id="qrContent" placeholder="https://example.com"></div>`,
+    email:`<div class="form-group"><label>Email</label><input type="text" id="qrContent" placeholder="ten@email.com"></div>
+           <div class="form-group"><label>Chủ đề</label><input type="text" id="emailSubject" placeholder="Tiêu đề"></div>
+           <div class="form-group"><label>Nội dung</label><textarea id="emailBody" placeholder="Nội dung..."></textarea></div>`,
+    phone:`<div class="form-group"><label>Số điện thoại</label><input type="text" id="qrContent" placeholder="+84901234567"></div>`,
+    sms:  `<div class="form-group"><label>Số điện thoại</label><input type="text" id="qrContent" placeholder="+84901234567"></div>
+           <div class="form-group"><label>Nội dung SMS</label><textarea id="smsBody" placeholder="Tin nhắn..."></textarea></div>`,
+    wifi: `<div class="form-group"><label>Tên mạng (SSID)</label><input type="text" id="wifiSSID" placeholder="Tên WiFi"></div>
+           <div class="form-group"><label>Mật khẩu</label><input type="text" id="wifiPass" placeholder="Mật khẩu"></div>
+           <div class="form-group"><label>Bảo mật</label><select id="wifiSec"><option value="WPA">WPA/WPA2</option><option value="WEP">WEP</option><option value="nopass">Không mật khẩu</option></select></div>`,
+    vcard:`<div class="form-group"><label>Họ tên</label><input type="text" id="vcardName" placeholder="Nguyễn Văn A"></div>
+           <div class="form-group"><label>Số điện thoại</label><input type="text" id="vcardPhone" placeholder="+84901234567"></div>
+           <div class="form-group"><label>Email</label><input type="text" id="vcardEmail" placeholder="email@example.com"></div>
+           <div class="form-group"><label>Website</label><input type="text" id="vcardWeb" placeholder="https://..."></div>
+           <div class="form-group"><label>Công ty</label><input type="text" id="vcardOrg" placeholder="Tên công ty"></div>
+           <div class="form-group"><label>Chức vụ</label><input type="text" id="vcardTitle" placeholder="Chức vụ"></div>`,
+    location:`<div class="form-group"><label>Địa chỉ</label><textarea id="qrContent" placeholder="123 Đường ABC, Q1, TP.HCM"></textarea></div>
+              <div class="form-group"><label>Tọa độ (Lat,Lng)</label><input type="text" id="locationCoord" placeholder="10.7769,106.7009"></div>`
+  };
+  container.innerHTML = tpls[type] || tpls.text;
+}
+
+function buildContent() {
+  const type = document.getElementById('contentType').value;
+  const getVal = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  switch(type) {
+    case 'text': case 'url': return getVal('qrContent');
+    case 'phone': return `tel:${getVal('qrContent')}`;
+    case 'email': {
+      const sub = getVal('emailSubject'), body = getVal('emailBody');
+      let url = `mailto:${getVal('qrContent')}`;
+      if (sub || body) url += `?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`;
+      return url;
+    }
+    case 'sms': return `smsto:${getVal('qrContent')}:${getVal('smsBody')}`;
+    case 'wifi': return `WIFI:T:${getVal('wifiSec')};S:${getVal('wifiSSID')};P:${getVal('wifiPass')};;`;
+    case 'vcard': return `BEGIN:VCARD\nVERSION:3.0\nFN:${getVal('vcardName')}\nTEL:${getVal('vcardPhone')}\nEMAIL:${getVal('vcardEmail')}\nURL:${getVal('vcardWeb')}\nORG:${getVal('vcardOrg')}\nTITLE:${getVal('vcardTitle')}\nEND:VCARD`;
+    case 'location': {
+      const coord = getVal('locationCoord'), addr = getVal('qrContent');
+      return coord ? `geo:${coord}` : `https://maps.google.com/?q=${encodeURIComponent(addr)}`;
+    }
+    default: return getVal('qrContent');
+  }
+}
+
+// ==============================
+// LOGO
+// ==============================
+function handleLogoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5*1024*1024) { showToast('error','❌ Ảnh quá lớn! Tối đa 5MB'); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    logoDataUrl = e.target.result;
+    document.getElementById('logoImg').src = logoDataUrl;
+    document.getElementById('logoName').textContent = file.name;
+    document.getElementById('logoSizeText').textContent = formatBytes(file.size);
+    document.getElementById('logoPreview').style.display = 'flex';
+    showToast('success','✅ Đã tải logo!');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLogo() {
+  logoDataUrl = null;
+  document.getElementById('logoFile').value = '';
+  document.getElementById('logoPreview').style.display = 'none';
+  showToast('info','🗑️ Đã xóa logo');
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+// ==============================
+// GENERATE QR - MULTI SIZE
+// ==============================
+async function generateQR() {
+  const content = buildContent();
+  if (!content) { showToast('error','❌ Vui lòng nhập nội dung QR!'); return; }
+  if (selectedSizes.length === 0) { showToast('error','❌ Chọn ít nhất 1 kích thước!'); return; }
+
+  currentContent = content;
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('qrResultWrap').style.display = 'flex';
+  document.getElementById('loadingQR').classList.add('show');
+  document.getElementById('qrOutput').style.visibility = 'hidden';
+  document.getElementById('qrCard').style.display = 'none';
+  document.getElementById('downloadGroup').style.display = 'none';
+
+  const padding = parseInt(document.getElementById('qrPadding').value);
+  const label = document.getElementById('qrLabel').value.trim();
+  const template = currentTemplate === 'custom' ? getCustomTemplate() : TEMPLATES[currentTemplate];
+  const logoSizeRatio = parseInt(document.getElementById('logoSize').value) / 100;
+  const logoRadius = parseInt(document.getElementById('logoRadius').value);
+
+  try {
+    generatedBlobs = {};
+    const sizes = [...selectedSizes].sort((a,b) => a-b);
+    const grid = document.getElementById('multiQRGrid');
+    grid.innerHTML = '';
+
+    for (const size of sizes) {
+      const blob = await createQRBlob(content, size, padding, template, label, logoSizeRatio, logoRadius);
+      generatedBlobs[size] = blob;
+      const blobUrl = URL.createObjectURL(blob);
+
+      const item = document.createElement('div');
+      item.className = 'multi-qr-item';
+      item.dataset.size = size;
+      item.dataset.blobUrl = blobUrl;
+      item.innerHTML = `<img src="${blobUrl}" alt="${size}px"><div class="multi-qr-size">${size}×${size} · ${formatBytes(blob.size)}</div>`;
+      item.onclick = () => selectQRSize(item, size, blobUrl, blob.size, template.name, content.length);
+      grid.appendChild(item);
+    }
+
+    // Auto-select largest
+    const items = grid.querySelectorAll('.multi-qr-item');
+    if (items.length > 0) {
+      const lastItem = items[items.length - 1];
+      const sz = parseInt(lastItem.dataset.size);
+      selectQRSize(lastItem, sz, lastItem.dataset.blobUrl, generatedBlobs[sz].size, template.name, content.length);
+    }
+
+    document.getElementById('qrOutput').style.visibility = 'visible';
+    document.getElementById('loadingQR').classList.remove('show');
+    showToast('success', `✨ Đã tạo ${sizes.length} QR thành công!`);
+  } catch(err) {
+    document.getElementById('loadingQR').classList.remove('show');
+    console.error(err);
+    showToast('error','❌ Lỗi: ' + err.message);
+  }
+}
+
+function selectQRSize(el, size, blobUrl, blobSize, templateName, chars) {
+  document.querySelectorAll('.multi-qr-item').forEach(i => i.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedSize = size;
+
+  document.getElementById('qrBlobImg').src = blobUrl;
+  document.getElementById('qrCard').style.display = 'block';
+  document.getElementById('downloadGroup').style.display = 'flex';
+  document.getElementById('infoSize').textContent = `${size}×${size}`;
+  document.getElementById('infoChars').textContent = chars + ' ký tự';
+  document.getElementById('infoTemplate').textContent = templateName;
+  document.getElementById('infoFileSize').textContent = formatBytes(blobSize);
+}
+
+// ==============================
+// CREATE QR BLOB
+// ==============================
+async function createQRBlob(content, size, padding, template, label, logoSizeRatio, logoRadius) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const labelHeight = label ? 48 : 0;
+      const borderThick = 12;
+      const innerSize = size;
+      const totalW = innerSize + padding*2 + borderThick*2;
+      const totalH = innerSize + padding*2 + borderThick*2 + labelHeight;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = totalW;
+      canvas.height = totalH;
+      const ctx = canvas.getContext('2d');
+
+      // Outer frame gradient
+      const grad = ctx.createLinearGradient(0, 0, totalW, totalH);
+      grad.addColorStop(0, template.border[0]);
+      grad.addColorStop(1, template.border[1]);
+      roundRect(ctx, 0, 0, totalW, totalH, 24, grad);
+
+      // Inner white area
+      roundRect(ctx, borderThick, borderThick, innerSize+padding*2, innerSize+padding*2, 16, template.bg);
+
+      // Generate QR
+      const qrCanvas = document.createElement('canvas');
+      await new Promise((res, rej) => {
+        QRCode.toCanvas(qrCanvas, content, {
+          width: innerSize,
+          margin: 0,
+          color: { dark: template.fg, light: template.bg },
+          errorCorrectionLevel: currentEC
+        }, err => err ? rej(err) : res());
+      });
+
+      const innerX = borderThick + padding;
+      const innerY = borderThick + padding;
+      ctx.drawImage(qrCanvas, innerX, innerY, innerSize, innerSize);
+
+      // Logo
+      if (logoDataUrl) {
+        await drawLogo(ctx, innerX, innerY, innerSize, logoSizeRatio, logoRadius, template.bg);
+      }
+
+      // Corner dots
+      drawCornerDots(ctx, innerX, innerY, innerSize, template.border[0]);
+
+      // Label
+      if (label) {
+        const labelY = totalH - labelHeight;
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillRect(borderThick, labelY, innerSize+padding*2, labelHeight);
+        ctx.fillStyle = template.label || '#ffffff';
+        ctx.font = 'bold 16px "Segoe UI", system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, totalW/2, labelY + labelHeight/2);
+      }
+
+      canvas.toBlob(blob => {
+        if (blob) resolve(blob);
+        else reject(new Error('Không thể tạo blob'));
+      }, 'image/png', 0.95);
+    } catch(e) { reject(e); }
+  });
+}
+
+function roundRect(ctx, x, y, w, h, r, fill) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+}
+
+function drawCornerDots(ctx, x, y, size, color) {
+  const d = 8;
+  [[x,y],[x+size,y],[x,y+size],[x+size,y+size]].forEach(([px,py]) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(px, py, d/2, 0, Math.PI*2);
+    ctx.fill();
+  });
+}
+
+async function drawLogo(ctx, qrX, qrY, qrSize, sizeRatio, radius, bgColor) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const logoW = qrSize * sizeRatio, logoH = logoW;
+      const lx = qrX + (qrSize - logoW)/2, ly = qrY + (qrSize - logoH)/2;
+      const pad = 6;
+      roundRect(ctx, lx-pad, ly-pad, logoW+pad*2, logoH+pad*2, radius+2, bgColor || '#ffffff');
+      ctx.save();
+      ctx.beginPath();
+      const rr = Math.min(radius, logoW/2);
+      ctx.moveTo(lx+rr, ly); ctx.lineTo(lx+logoW-rr, ly);
+      ctx.quadraticCurveTo(lx+logoW, ly, lx+logoW, ly+rr);
+      ctx.lineTo(lx+logoW, ly+logoH-rr);
+      ctx.quadraticCurveTo(lx+logoW, ly+logoH, lx+logoW-rr, ly+logoH);
+      ctx.lineTo(lx+rr, ly+logoH);
+      ctx.quadraticCurveTo(lx, ly+logoH, lx, ly+logoH-rr);
+      ctx.lineTo(lx, ly+rr);
+      ctx.quadraticCurveTo(lx, ly, lx+rr, ly);
+      ctx.clip();
+      ctx.drawImage(img, lx, ly, logoW, logoH);
+      ctx.restore();
+      resolve();
+    };
+    img.onerror = resolve;
+    img.src = logoDataUrl;
+  });
+}
+
+// ==============================
+// DOWNLOAD
+// ==============================
+function downloadSelected(format) {
+  if (!selectedSize || !generatedBlobs[selectedSize]) {
+    showToast('error','❌ Chưa chọn QR!'); return;
+  }
+  if (format === 'png') {
+    const blobUrl = URL.createObjectURL(generatedBlobs[selectedSize]);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `qr-${selectedSize}px-${Date.now()}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+    showToast('success','⬇️ Đang tải PNG...');
+  } else if (format === 'svg') {
+    downloadSVG();
+  }
+}
+
+async function downloadSVG() {
+  if (!currentContent) return;
+  try {
+    const template = currentTemplate === 'custom' ? getCustomTemplate() : TEMPLATES[currentTemplate];
+    const svgStr = await QRCode.toString(currentContent, {
+      type: 'svg',
+      color: { dark: template.fg, light: template.bg },
+      errorCorrectionLevel: currentEC,
+      margin: 2
+    });
+    const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `qr-${Date.now()}.svg`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    showToast('success','📐 Đang tải SVG...');
+  } catch(e) { showToast('error','❌ Lỗi xuất SVG'); }
+}
+
+async function downloadAllPNG() {
+  const sizes = Object.keys(generatedBlobs);
+  if (sizes.length === 0) { showToast('error','❌ Chưa có QR!'); return; }
+  for (const size of sizes) {
+    const blobUrl = URL.createObjectURL(generatedBlobs[size]);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `qr-${size}px-${Date.now()}.png`;
+    a.click();
+    await new Promise(r => setTimeout(r, 300));
+    URL.revokeObjectURL(blobUrl);
+  }
+  showToast('success',`📦 Đã tải ${sizes.length} file PNG!`);
+}
+
+async function copyQRToClipboard() {
+  if (!selectedSize || !generatedBlobs[selectedSize]) {
+    showToast('error','❌ Chưa có QR!'); return;
+  }
+  try {
+    await navigator.clipboard.write([new ClipboardItem({'image/png': generatedBlobs[selectedSize]})]);
+    showToast('success','📋 Đã copy ảnh QR!');
+  } catch { showToast('error','❌ Trình duyệt không hỗ trợ copy ảnh'); }
+}
+
+// ==============================
+// DECODE QR - BATCH
+// ==============================
+function handleDecode(e) {
+  e.preventDefault();
+  document.getElementById('decodeDrop').classList.remove('dragover');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  if (files.length > 0) processDecodeFiles(files);
+}
+
+function decodeFromFiles(input) {
+  const files = Array.from(input.files);
+  if (files.length > 0) processDecodeFiles(files);
+}
+
+async function processDecodeFiles(files) {
+  if (files.length === 1) {
+    // Single mode
+    document.getElementById('batchResultArea').style.display = 'none';
+    document.getElementById('batchStats').style.display = 'none';
+    const file = files[0];
+    document.getElementById('decodePreviewImg').src = URL.createObjectURL(file);
+    document.getElementById('decodeInfoSize').textContent = formatBytes(file.size);
+    const reader = new FileReader();
+    reader.onload = e => decodeQRFromDataUrl(e.target.result);
+    reader.readAsDataURL(file);
+  } else {
+    // Batch mode
+    document.getElementById('decodeResultArea').style.display = 'none';
+    document.getElementById('decodeErrorArea').style.display = 'none';
+    document.getElementById('loadingDecode').classList.add('show');
+
+    batchResults = [];
+    const list = document.getElementById('batchList');
+    list.innerHTML = '';
+    document.getElementById('batchCount').textContent = files.length;
+    document.getElementById('batchResultArea').style.display = 'block';
+    document.getElementById('batchStats').style.display = 'block';
+
+    let okCount = 0, failCount = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const blobUrl = URL.createObjectURL(file);
+      try {
+        const dataUrl = await fileToDataUrl(file);
+        const result = await decodeQRFromDataUrlAsync(dataUrl);
+        const typeInfo = detectContentType(result || '');
+
+        batchResults.push({ name: file.name, result, success: true, typeInfo });
+        okCount++;
+
+        const item = document.createElement('div');
+        item.className = 'batch-item success';
+        item.innerHTML = `
+          <img class="batch-item-img" src="${blobUrl}" alt="${file.name}">
+          <div class="batch-item-header">
+            <span class="batch-item-name">${file.name}</span>
+            <span class="batch-item-type">${typeInfo.icon} ${typeInfo.label}</span>
+          </div>
+          <div class="batch-item-content">${escapeHtml(result)}</div>
+          <button class="btn-copy" onclick="copyText('${escapeAttr(result)}')" style="margin-top:6px">📋 Copy</button>
+        `;
+        list.appendChild(item);
+      } catch(e) {
+        batchResults.push({ name: file.name, result: null, success: false, error: e.message });
+        failCount++;
+        const item = document.createElement('div');
+        item.className = 'batch-item error';
+        item.innerHTML = `
+          <img class="batch-item-img" src="${blobUrl}" alt="${file.name}">
+          <div class="batch-item-header"><span class="batch-item-name">${file.name}</span><span style="color:#ef4444;font-size:11px">❌ Lỗi</span></div>
+          <div class="batch-item-error">${e.message}</div>
+        `;
+        list.appendChild(item);
+      }
+
+      document.getElementById('statOk').textContent = okCount;
+      document.getElementById('statFail').textContent = failCount;
+      document.getElementById('statTotal').textContent = i + 1;
+    }
+
+    document.getElementById('loadingDecode').classList.remove('show');
+    showToast('success', `✅ Xong! ${okCount}/${files.length} thành công`);
+  }
+}
+
+function fileToDataUrl(file) {
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload = e => res(e.target.result);
+    reader.onerror = rej;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function decodeQRFromDataUrlAsync(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      if (typeof jsQR === 'undefined') { reject(new Error('jsQR chưa tải')); return; }
+      let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+      if (!code) code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'invertFirst' });
+      if (code) resolve(code.data);
+      else reject(new Error('Không tìm thấy QR trong ảnh'));
+    };
+    img.onerror = () => reject(new Error('Không đọc được ảnh'));
+    img.src = dataUrl;
+  });
+}
+
+function decodeQRFromDataUrl(dataUrl) {
+  const img = new Image();
+  img.onload = () => decodeFromImageElement(img);
+  img.onerror = () => showDecodeError('Không thể đọc ảnh');
+  img.src = dataUrl;
+}
+
+function decodeFromUrl() {
+  const url = document.getElementById('decodeUrl').value.trim();
+  if (!url) { showToast('error','❌ Nhập URL ảnh!'); return; }
+  document.getElementById('decodePreviewImg').src = url;
+  document.getElementById('decodeInfoSize').textContent = 'URL';
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => decodeFromImageElement(img);
+  img.onerror = () => showDecodeError('Không thể tải ảnh từ URL này (CORS)');
+  img.src = url;
+}
+
+function decodeFromImageElement(img) {
+  document.getElementById('loadingDecode').classList.add('show');
+  document.getElementById('decodeResultArea').style.display = 'none';
+  document.getElementById('decodeErrorArea').style.display = 'none';
+  setTimeout(() => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      if (typeof jsQR === 'undefined') throw new Error('jsQR chưa tải. Kiểm tra file js/jsqr.min.js');
+      let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+      if (!code) code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'invertFirst' });
+      document.getElementById('loadingDecode').classList.remove('show');
+      if (code) showDecodeResult(code.data, canvas.width + '×' + canvas.height);
+      else showDecodeError('Không tìm thấy mã QR trong ảnh. Hãy dùng ảnh rõ nét hơn.');
+    } catch(e) {
+      document.getElementById('loadingDecode').classList.remove('show');
+      showDecodeError('Lỗi: ' + e.message);
+    }
+  }, 80);
+}
+
+function detectContentType(text) {
+  if (/^https?:\/\//i.test(text)) return { icon:'🔗', label:'URL' };
+  if (/^mailto:/i.test(text)) return { icon:'📧', label:'Email' };
+  if (/^tel:/i.test(text)) return { icon:'📞', label:'Điện thoại' };
+  if (/^smsto:/i.test(text)) return { icon:'💬', label:'SMS' };
+  if (/^WIFI:/i.test(text)) return { icon:'📶', label:'WiFi' };
+  if (/^BEGIN:VCARD/i.test(text)) return { icon:'👤', label:'vCard' };
+  if (/^geo:/i.test(text)) return { icon:'📍', label:'Location' };
+  return { icon:'📄', label:'Văn bản' };
+}
+
+function showDecodeResult(text, imgDim) {
+  const typeInfo = detectContentType(text);
+  document.getElementById('decodeType').textContent = `${typeInfo.icon} ${typeInfo.label}`;
+  document.getElementById('decodeContent').textContent = text;
+  document.getElementById('decodeInfoType').textContent = typeInfo.label;
+  document.getElementById('decodeInfoLen').textContent = text.length + ' ký tự';
+  if (imgDim) document.getElementById('decodeInfoSize').textContent = imgDim;
+  document.getElementById('decodeResultArea').style.display = 'block';
+  document.getElementById('decodeErrorArea').style.display = 'none';
+  showToast('success','✅ Giải mã thành công!');
+}
+
+function showDecodeError(msg) {
+  document.getElementById('decodeErrorMsg').textContent = msg;
+  document.getElementById('decodeErrorArea').style.display = 'block';
+  document.getElementById('decodeResultArea').style.display = 'none';
+  showToast('error','❌ ' + msg);
+}
+
+function copyDecodeResult() {
+  const text = document.getElementById('decodeContent').textContent;
+  copyText(text);
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('success','📋 Đã copy!'))
+    .catch(() => showToast('error','❌ Không thể copy'));
+}
+
+// Export CSV
+function exportBatchCSV() {
+  if (batchResults.length === 0) return;
+  const rows = [['STT','Tên file','Thành công','Loại','Nội dung']];
+  batchResults.forEach((r, i) => {
+    rows.push([
+      i+1, r.name,
+      r.success ? 'Có' : 'Không',
+      r.success ? r.typeInfo.label : 'N/A',
+      r.success ? r.result : (r.error || '')
+    ]);
+  });
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff'+csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `qr-batch-${Date.now()}.csv`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  showToast('success','📊 Đã xuất CSV!');
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escapeAttr(str) {
+  return String(str).replace(/'/g,"\\'").replace(/\n/g,' ');
+}
+
+// ==============================
+// TOAST
+// ==============================
+function showToast(type, msg) {
+  const toast = document.getElementById('toast');
+  toast.className = `toast ${type}`;
+  document.getElementById('toastMsg').textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
