@@ -1,3 +1,6 @@
+[![Live Demo](https://img.shields.io/badge/Demo-Online-success)](https://wbcutter.github.io/QR/)
+[![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
+
 # QR Generator
 
 A fast, lightweight, and privacy-friendly QR Code Generator that runs entirely in your browser.
